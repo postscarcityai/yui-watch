@@ -1,0 +1,32 @@
+# Every pull request (Yui@home): a pull request from a fork may not touch CI, signing, release
+# settings or the conformance copies (CONTRIBUTING-AGENTS.md, "Never touch").
+# No secrets anywhere in this file: it runs fork code, so it gets a read-only token and nothing else.
+# The build and test jobs come with the first card that adds code. Nothing merges on its own.
+name: checks
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  hands-off:
+    if: github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0, persist-credentials: false }
+      - name: Changed files stay out of the hands-off paths
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          bad=$(git diff --name-only "$BASE"..."$PR_HEAD" | grep -E '(^\.github/)|(.*\.(p8|p12|cer|mobileprovision|provisionprofile|jks|keystore|pfx)$)|(.*\.env$)|((^|/)google-services\.json$)|((^|/)local\.properties$)|(^yui$)' || true)
+          sign=$(git diff "$BASE"..."$PR_HEAD" | grep -E '^[+-][^+-].*(DEVELOPMENT_TEAM|CODE_SIGN|PROVISIONING_PROFILE|storePassword|keyPassword|signingConfig)' | grep -v 'YUI_TEAM_ID' || true)
+          if [ -n "$bad$sign" ]; then
+            echo "This pull request changes files or settings an outside pull request may not touch:"
+            [ -n "$bad" ] && echo "$bad"
+            [ -n "$sign" ] && echo "signing lines:" && echo "$sign"
+            echo "See CONTRIBUTING-AGENTS.md, 'Never touch'. Take them out and push again."
+            exit 1
+          fi
+          echo "ok: nothing in the hands-off paths"

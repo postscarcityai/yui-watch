@@ -1,0 +1,6 @@
+# Review before merge (Yui@home). A person reviews every pull request; these paths also need the owner.
+/.github/                    @CJohnDesign
+/LICENSE                     @CJohnDesign
+/NOTICE                      @CJohnDesign
+/project.yml                 @CJohnDesign
+/yui                         @CJohnDesign
